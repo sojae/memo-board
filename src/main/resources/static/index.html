@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>메모 게시판 · API 테스트</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #8b93a3;
+    --accent: #6ea8fe;
+    --green: #5ec97a;
+    --red: #ef6a6a;
+    --yellow: #e3b341;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+    font-size: 14px; line-height: 1.6;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+  header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .header-left h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 14px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  input, textarea {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); padding: 9px 11px;
+    font-family: inherit; font-size: 13px; margin-bottom: 12px;
+  }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 84px; }
+
+  button {
+    background: var(--accent); color: #0f1115; border: none;
+    border-radius: 6px; padding: 9px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  button:hover { filter: brightness(1.08); }
+  button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
+  button.ghost:hover { color: var(--text); border-color: var(--muted); }
+  button.danger { background: transparent; color: var(--red); border: 1px solid var(--border); font-weight: 500; }
+  button.sm { padding: 5px 10px; font-size: 12px; }
+  .row { display: flex; gap: 8px; }
+
+  .search-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+  .search-bar input { margin-bottom: 0; }
+
+  .memo {
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 10px; background: var(--panel-2);
+  }
+  .memo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .memo-title { font-weight: 600; font-size: 15px; }
+  .memo-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .memo-content { margin-top: 10px; white-space: pre-wrap; color: #c7ccd6; }
+  .memo-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 16px; color: var(--muted); font-size: 12px; }
+
+  .empty { color: var(--muted); text-align: center; padding: 36px 0; }
+  .err { color: var(--red); font-size: 12px; margin: -6px 0 12px; min-height: 16px; }
+
+  /* 인증 영역 */
+  .auth-bar {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px;
+  }
+  .auth-bar input { margin-bottom: 0; width: 140px; }
+  .auth-bar .err { margin: 0; min-height: auto; }
+  .user-info { color: var(--green); font-weight: 600; font-size: 13px; }
+  .auth-bar button.logout { background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 500; font-size: 12px; padding: 6px 12px; }
+
+  /* 요청 로그 패널 */
+  #log { margin-top: 20px; }
+  .log-line {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+    padding: 6px 0; border-bottom: 1px solid var(--border); color: var(--muted);
+  }
+  .log-line:last-child { border-bottom: none; }
+  .m { font-weight: 700; margin-right: 8px; }
+  .m-GET { color: var(--accent); } .m-POST { color: var(--green); }
+  .m-PUT { color: var(--yellow); } .m-DELETE { color: var(--red); }
+  .st-ok { color: var(--green); } .st-err { color: var(--red); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="header-left">
+      <h1>메모 게시판</h1>
+      <div class="sub">Spring Boot REST API 동작 확인용 페이지 · JWT 인증 기반</div>
+    </div>
+
+    <!-- 로그인/회원가입 or 사용자 정보 -->
+    <div class="auth-bar" id="authBar">
+      <!-- 비로그인 상태 -->
+      <div id="authForm">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input id="authUsername" placeholder="사용자명" maxlength="30">
+          <input id="authPassword" type="password" placeholder="비밀번호" maxlength="100">
+          <button class="sm" id="loginBtn">로그인</button>
+          <button class="ghost sm" id="signupBtn">회원가입</button>
+        </div>
+        <div class="err" id="authError"></div>
+      </div>
+      <!-- 로그인 상태 -->
+      <div id="userInfo" style="display:none;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="user-info" id="currentUser"></span>
+          <button class="logout sm" id="logoutBtn">로그아웃</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- 왼쪽: 작성/수정 폼 (로그인 시에만 표시) -->
+    <div class="card" id="formCard" style="display:none;">
+      <h2 id="formTitle">새 메모 작성</h2>
+      <input type="hidden" id="editingId">
+
+      <label for="title">제목</label>
+      <input id="title" placeholder="제목을 입력하세요" maxlength="100">
+
+      <label for="content">내용</label>
+      <textarea id="content" placeholder="내용을 입력하세요" maxlength="2000"></textarea>
+
+      <div class="err" id="formError"></div>
+
+      <div class="row">
+        <button id="submitBtn">저장</button>
+        <button class="ghost" id="cancelBtn" style="display:none">취소</button>
+      </div>
+    </div>
+
+    <!-- 왼쪽: 비로그인 안내 -->
+    <div class="card" id="loginPrompt">
+      <h2>메모 작성</h2>
+      <div class="empty">로그인하면 메모를 작성할 수 있습니다.</div>
+    </div>
+
+    <!-- 오른쪽: 목록 -->
+    <div class="card">
+      <h2>메모 목록</h2>
+      <div class="search-bar">
+        <input id="keyword" placeholder="제목으로 검색">
+        <button class="ghost" id="searchBtn">검색</button>
+        <button class="ghost" id="resetBtn">초기화</button>
+      </div>
+      <div id="list"></div>
+      <div class="pager">
+        <button class="ghost sm" id="prevBtn">이전</button>
+        <span id="pageInfo">-</span>
+        <button class="ghost sm" id="nextBtn">다음</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="log">
+    <h2>요청 기록</h2>
+    <div id="logBody"><div class="log-line">아직 요청이 없습니다.</div></div>
+  </div>
+</div>
+
+<script>
+const API = '/api/memos';
+const AUTH_API = '/api/auth';
+
+const PAGE_SIZE = 5;
+let totalPages = 1;
+
+function getUrlParams() {
+  const p = new URLSearchParams(location.search);
+  return {
+    page: Math.max(0, parseInt(p.get('page') ?? '0', 10) || 0),
+    keyword: p.get('keyword') ?? ''
+  };
+}
+function pushPageState(page, keyword) {
+  const p = new URLSearchParams();
+  if (page > 0) p.set('page', page);
+  if (keyword) p.set('keyword', keyword);
+  const qs = p.toString();
+  history.pushState(null, '', qs ? `?${qs}` : location.pathname);
+}
+
+let { page: currentPage, keyword: currentKeyword } = getUrlParams();
+
+const $ = (id) => document.getElementById(id);
+
+// --- 인증 상태 관리 ---
+function getToken() { return localStorage.getItem('jwt_token'); }
+function getUsername() { return localStorage.getItem('jwt_username'); }
+
+function setAuth(token, username) {
+  localStorage.setItem('jwt_token', token);
+  localStorage.setItem('jwt_username', username);
+  updateAuthUI();
+}
+
+function clearAuth() {
+  localStorage.removeItem('jwt_token');
+  localStorage.removeItem('jwt_username');
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  const loggedIn = !!getToken();
+  $('authForm').style.display = loggedIn ? 'none' : 'block';
+  $('userInfo').style.display = loggedIn ? 'block' : 'none';
+  $('formCard').style.display = loggedIn ? 'block' : 'none';
+  $('loginPrompt').style.display = loggedIn ? 'none' : 'block';
+  if (loggedIn) {
+    $('currentUser').textContent = getUsername() + ' 님';
+  }
+  loadList();
+}
+
+// --- API 호출 헬퍼 ---
+async function api(method, url, body) {
+  const options = { method, headers: { 'Content-Type': 'application/json' } };
+  const token = getToken();
+  if (token) {
+    options.headers['Authorization'] = 'Bearer ' + token;
+  }
+  if (body) options.body = JSON.stringify(body);
+
+  const res = await fetch(url, options);
+  addLog(method, url, res.status);
+
+  // 401/403 응답 시 자동 로그아웃
+  if (res.status === 401 || res.status === 403) {
+    const data = await res.json().catch(() => null);
+    if (res.status === 401 && getToken()) {
+      clearAuth();
+    }
+    throw { status: res.status, data };
+  }
+
+  if (res.status === 204) return null;
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw { status: res.status, data };
+  return data;
+}
+
+function addLog(method, url, status) {
+  const body = $('logBody');
+  if (body.dataset.empty !== 'no') { body.innerHTML = ''; body.dataset.empty = 'no'; }
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  const cls = status >= 200 && status < 300 ? 'st-ok' : 'st-err';
+  line.innerHTML = `<span class="m m-${method}">${method}</span>${escapeHtml(url)} <span class="${cls}">→ ${status}</span>`;
+  body.prepend(line);
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// --- 인증 기능 ---
+async function doLogin() {
+  const username = $('authUsername').value.trim();
+  const password = $('authPassword').value.trim();
+  $('authError').textContent = '';
+  if (!username || !password) { $('authError').textContent = '사용자명과 비밀번호를 입력하세요.'; return; }
+
+  try {
+    const data = await api('POST', `${AUTH_API}/login`, { username, password });
+    setAuth(data.token, data.username);
+    $('authUsername').value = '';
+    $('authPassword').value = '';
+  } catch (e) {
+    $('authError').textContent = e.data?.message ?? '로그인에 실패했습니다.';
+  }
+}
+
+async function doSignup() {
+  const username = $('authUsername').value.trim();
+  const password = $('authPassword').value.trim();
+  $('authError').textContent = '';
+  if (!username || !password) { $('authError').textContent = '사용자명과 비밀번호를 입력하세요.'; return; }
+
+  try {
+    const data = await api('POST', `${AUTH_API}/signup`, { username, password });
+    setAuth(data.token, data.username);
+    $('authUsername').value = '';
+    $('authPassword').value = '';
+  } catch (e) {
+    const fe = e.data?.fieldErrors;
+    $('authError').textContent = fe && Object.keys(fe).length
+      ? Object.values(fe).join(' / ')
+      : (e.data?.message ?? '회원가입에 실패했습니다.');
+  }
+}
+
+// --- 메모 CRUD ---
+async function loadList(updateUrl = true) {
+  const params = new URLSearchParams({ page: currentPage, size: PAGE_SIZE });
+  if (currentKeyword) params.set('keyword', currentKeyword);
+
+  if (updateUrl) pushPageState(currentPage, currentKeyword);
+
+  try {
+    const data = await api('GET', `${API}?${params}`);
+    totalPages = Math.max(data.totalPages, 1);
+    render(data.content);
+    $('pageInfo').textContent = `${data.page + 1} / ${totalPages} 페이지 · 전체 ${data.totalElements}건`;
+    $('prevBtn').disabled = data.page === 0;
+    $('nextBtn').disabled = data.last;
+  } catch (e) {
+    $('list').innerHTML = `<div class="empty">목록을 불러오지 못했습니다. 서버가 켜져 있는지 확인하세요.</div>`;
+  }
+}
+
+function render(memos) {
+  const list = $('list');
+  const loggedInUser = getUsername();
+
+  if (!memos.length) {
+    list.innerHTML = `<div class="empty">메모가 없습니다.</div>`;
+    return;
+  }
+  list.innerHTML = memos.map(m => {
+    const isOwner = loggedInUser && m.author === loggedInUser;
+    const actions = isOwner
+      ? `<div class="memo-actions">
+           <button class="ghost sm" onclick="startEdit(${m.id})">수정</button>
+           <button class="danger sm" onclick="removeMemo(${m.id})">삭제</button>
+         </div>`
+      : '';
+    return `
+      <div class="memo">
+        <div class="memo-top">
+          <div>
+            <div class="memo-title">${escapeHtml(m.title)}</div>
+            <div class="memo-meta">#${m.id} · ${escapeHtml(m.author)} · ${formatDate(m.createdAt)}</div>
+          </div>
+          ${actions}
+        </div>
+        <div class="memo-content">${escapeHtml(m.content)}</div>
+      </div>`;
+  }).join('');
+}
+
+async function submitForm() {
+  const id = $('editingId').value;
+  const title = $('title').value.trim();
+  const content = $('content').value.trim();
+  $('formError').textContent = '';
+
+  try {
+    if (id) {
+      await api('PUT', `${API}/${id}`, { title, content });
+    } else {
+      await api('POST', API, { title, content });
+    }
+    resetForm();
+    currentPage = 0;
+    loadList();
+  } catch (e) {
+    if (e.status === 403) {
+      $('formError').textContent = e.data?.message ?? '본인의 메모만 수정할 수 있습니다.';
+      return;
+    }
+    const fe = e.data?.fieldErrors;
+    $('formError').textContent = fe && Object.keys(fe).length
+      ? Object.values(fe).join(' / ')
+      : (e.data?.message ?? '저장에 실패했습니다.');
+  }
+}
+
+async function startEdit(id) {
+  try {
+    const m = await api('GET', `${API}/${id}`);
+    $('editingId').value = m.id;
+    $('title').value = m.title;
+    $('content').value = m.content;
+    $('formTitle').textContent = `메모 수정 (#${m.id})`;
+    $('submitBtn').textContent = '수정 저장';
+    $('cancelBtn').style.display = 'inline-block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) {
+    alert('메모를 불러오지 못했습니다.');
+  }
+}
+
+async function removeMemo(id) {
+  if (!confirm(`#${id} 메모를 삭제할까요?`)) return;
+  try {
+    await api('DELETE', `${API}/${id}`);
+    if ($('editingId').value == id) resetForm();
+    loadList();
+  } catch (e) {
+    if (e.status === 403) {
+      alert(e.data?.message ?? '본인의 메모만 삭제할 수 있습니다.');
+      return;
+    }
+    alert('삭제에 실패했습니다.');
+  }
+}
+
+function resetForm() {
+  $('editingId').value = '';
+  $('title').value = '';
+  $('content').value = '';
+  $('formError').textContent = '';
+  $('formTitle').textContent = '새 메모 작성';
+  $('submitBtn').textContent = '저장';
+  $('cancelBtn').style.display = 'none';
+}
+
+// --- 이벤트 연결 ---
+$('loginBtn').onclick = doLogin;
+$('signupBtn').onclick = doSignup;
+$('logoutBtn').onclick = () => { clearAuth(); resetForm(); };
+$('authPassword').onkeydown = (e) => { if (e.key === 'Enter') doLogin(); };
+
+$('submitBtn').onclick = submitForm;
+$('cancelBtn').onclick = resetForm;
+$('searchBtn').onclick = () => { currentKeyword = $('keyword').value.trim(); currentPage = 0; loadList(); };
+$('resetBtn').onclick = () => { $('keyword').value = ''; currentKeyword = ''; currentPage = 0; loadList(); };
+$('keyword').onkeydown = (e) => { if (e.key === 'Enter') $('searchBtn').click(); };
+$('prevBtn').onclick = () => { if (currentPage > 0) { currentPage--; loadList(); } };
+$('nextBtn').onclick = () => { if (currentPage < totalPages - 1) { currentPage++; loadList(); } };
+
+window.startEdit = startEdit;
+window.removeMemo = removeMemo;
+window.onpopstate = () => {
+  const s = getUrlParams();
+  currentPage = s.page;
+  currentKeyword = s.keyword;
+  $('keyword').value = currentKeyword;
+  loadList(false);
+};
+
+// 초기화
+$('keyword').value = currentKeyword;
+updateAuthUI();
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+// ============================================================
+// build.gradle  =  프론트엔드의 package.json 에 해당합니다.
+// 어떤 라이브러리를 쓸지, 어떤 자바 버전으로 컴파일할지를 적습니다.
+// ============================================================
+
+plugins {
+    // 자바 프로젝트라는 뜻
+    id 'java'
+    // 스프링 부트 플러그인. 실행 가능한 jar 를 만들고 bootRun 명령을 추가해 줍니다.
+    id 'org.springframework.boot' version '3.4.2'
+    // 스프링이 검증한 라이브러리 버전 조합을 자동으로 맞춰줍니다.
+    // 그래서 아래 dependencies 에 버전 번호를 안 적어도 됩니다.
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        // 자바 21로 컴파일합니다. (LTS 버전이라 안정적입니다)
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    // 라이브러리를 받아올 저장소. npm registry 에 해당합니다.
+    mavenCentral()
+}
+
+dependencies {
+    // --- 실제 서비스 코드에서 쓰는 라이브러리 (dependencies) ---
+
+    // 웹 서버 + REST API 를 만드는 데 필요한 모든 것 (내장 톰캣, JSON 변환기 등)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // JPA. 자바 객체와 DB 테이블을 자동으로 연결해 줍니다. (ORM)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // @NotBlank, @Size 같은 입력값 검증 어노테이션
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Spring Security = 인증/인가를 담당하는 보안 프레임워크
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // Springdoc OpenAPI = Swagger UI 자동 생성
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+
+    // JJWT = JWT(JSON Web Token) 생성/검증 라이브러리
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // H2 = 설치가 필요 없는 자바 내장 DB.
+    // runtimeOnly = 컴파일할 때는 필요 없고 실행할 때만 필요하다는 뜻
+    runtimeOnly 'com.h2database:h2'
+
+    // --- 테스트 코드에서만 쓰는 라이브러리 (devDependencies 느낌) ---
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    // JUnit 5 로 테스트를 실행합니다.
+    useJUnitPlatform()
+}

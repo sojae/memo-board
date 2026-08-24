@@ -1,0 +1,50 @@
+# ============================================================
+# 애플리케이션 설정 파일 (.env + 서버 설정 을 합친 느낌)
+# ============================================================
+
+server:
+  port: 8080          # 서버가 뜰 포트. http://localhost:8080
+
+spring:
+  application:
+    name: memo-board
+
+  # ---------- 데이터베이스 ----------
+  datasource:
+    # H2 를 "메모리 모드"로 씁니다. 설치가 필요 없고, 서버를 끄면 데이터가 사라집니다.
+    # 공부용으로는 이게 제일 편합니다. 나중에 MySQL/PostgreSQL 로 바꾸면 이 부분만 수정하면 됩니다.
+    url: jdbc:h2:mem:memodb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # H2 웹 콘솔. http://localhost:8080/h2-console 에서 SQL 을 직접 쳐볼 수 있습니다.
+  # (JDBC URL 칸에 위 url 값을 그대로 붙여넣고 Connect)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # ---------- JPA / Hibernate ----------
+  jpa:
+    hibernate:
+      # create-drop: 서버 시작할 때 테이블을 만들고, 끌 때 지웁니다.
+      # 실무에서는 절대 쓰지 않고 validate 또는 none 을 씁니다. 공부용 설정입니다.
+      ddl-auto: create-drop
+    # 실행되는 SQL 을 콘솔에 찍어줍니다. JPA 가 뭘 하는지 눈으로 보려면 켜두세요.
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true   # SQL 을 보기 좋게 줄바꿈
+
+# ---------- JWT ----------
+jwt:
+  # 토큰 서명에 쓰이는 비밀키. 실무에서는 환경 변수로 관리해야 합니다.
+  secret: memo-board-secret-key-for-jwt-must-be-at-least-256-bits-long-enough
+  # 토큰 유효 시간 (밀리초). 3600000 = 1시간
+  expiration: 3600000
+
+logging:
+  level:
+    # SQL 에 들어가는 실제 파라미터 값까지 보고 싶을 때
+    org.hibernate.orm.jdbc.bind: trace
