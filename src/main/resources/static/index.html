@@ -23,12 +23,10 @@
     font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
     font-size: 14px; line-height: 1.6;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
   header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
   .header-left h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.01em; }
   .sub { color: var(--muted); font-size: 13px; }
-  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
-  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
 
   .card {
     background: var(--panel); border: 1px solid var(--border);
@@ -37,12 +35,13 @@
   .card h2 { font-size: 14px; margin: 0 0 14px; color: var(--muted); font-weight: 600; letter-spacing: 0.02em; }
 
   label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
-  input, textarea {
+  input, textarea, select {
     width: 100%; background: var(--panel-2); border: 1px solid var(--border);
     border-radius: 6px; color: var(--text); padding: 9px 11px;
     font-family: inherit; font-size: 13px; margin-bottom: 12px;
   }
-  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  select { cursor: pointer; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
   textarea { resize: vertical; min-height: 84px; }
 
   button {
@@ -57,18 +56,20 @@
   button.sm { padding: 5px 10px; font-size: 12px; }
   .row { display: flex; gap: 8px; }
 
-  .search-bar { display: flex; gap: 8px; margin-bottom: 14px; }
-  .search-bar input { margin-bottom: 0; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-bar input { margin-bottom: 0; flex: 1; min-width: 120px; }
+  .filter-bar select { margin-bottom: 0; width: auto; min-width: 110px; flex: 0 0 auto; }
 
   .memo {
     border: 1px solid var(--border); border-radius: 8px;
     padding: 14px 16px; margin-bottom: 10px; background: var(--panel-2);
+    cursor: pointer; transition: border-color 0.15s;
   }
+  .memo:hover { border-color: var(--accent); }
   .memo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-  .memo-title { font-weight: 600; font-size: 15px; }
+  .memo-title { font-weight: 600; font-size: 15px; color: var(--accent); }
   .memo-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
-  .memo-content { margin-top: 10px; white-space: pre-wrap; color: #c7ccd6; }
-  .memo-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .memo-preview { margin-top: 6px; color: #9ca3af; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .pager { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 16px; color: var(--muted); font-size: 12px; }
 
@@ -86,6 +87,23 @@
   .user-info { color: var(--green); font-weight: 600; font-size: 13px; }
   .auth-bar button.logout { background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 500; font-size: 12px; padding: 6px 12px; }
 
+  /* 상세 페이지 */
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .detail-title { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
+  .detail-meta { color: var(--muted); font-size: 13px; }
+  .detail-content { white-space: pre-wrap; line-height: 1.8; margin: 20px 0; padding: 16px; background: var(--panel-2); border-radius: 8px; border: 1px solid var(--border); min-height: 100px; }
+  .detail-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+  /* 등록/수정 폼 */
+  .form-page textarea { min-height: 160px; }
+
+  /* 뷰 전환 */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* 툴바 */
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+
   /* 요청 로그 패널 */
   #log { margin-top: 20px; }
   .log-line {
@@ -97,6 +115,9 @@
   .m-GET { color: var(--accent); } .m-POST { color: var(--green); }
   .m-PUT { color: var(--yellow); } .m-DELETE { color: var(--red); }
   .st-ok { color: var(--green); } .st-err { color: var(--red); }
+
+  .back-link { color: var(--muted); cursor: pointer; font-size: 13px; }
+  .back-link:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -109,7 +130,6 @@
 
     <!-- 로그인/회원가입 or 사용자 정보 -->
     <div class="auth-bar" id="authBar">
-      <!-- 비로그인 상태 -->
       <div id="authForm">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <input id="authUsername" placeholder="사용자명" maxlength="30">
@@ -119,7 +139,6 @@
         </div>
         <div class="err" id="authError"></div>
       </div>
-      <!-- 로그인 상태 -->
       <div id="userInfo" style="display:none;">
         <div style="display:flex;gap:8px;align-items:center;">
           <span class="user-info" id="currentUser"></span>
@@ -129,10 +148,52 @@
     </div>
   </header>
 
-  <div class="grid">
-    <!-- 왼쪽: 작성/수정 폼 (로그인 시에만 표시) -->
-    <div class="card" id="formCard" style="display:none;">
-      <h2 id="formTitle">새 메모 작성</h2>
+  <!-- ===== 리스트 뷰 ===== -->
+  <div class="view active" id="listView">
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0;">메모 목록</h2>
+        <button class="sm" id="newMemoBtn" style="display:none;">새 메모 작성</button>
+      </div>
+      <div class="filter-bar">
+        <input id="keyword" placeholder="제목으로 검색">
+        <select id="authorFilter">
+          <option value="">전체 작성자</option>
+        </select>
+        <button class="ghost sm" id="searchBtn">검색</button>
+        <button class="ghost sm" id="resetBtn">초기화</button>
+      </div>
+      <div id="list"></div>
+      <div class="pager">
+        <button class="ghost sm" id="prevBtn">이전</button>
+        <span id="pageInfo">-</span>
+        <button class="ghost sm" id="nextBtn">다음</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 상세 뷰 ===== -->
+  <div class="view" id="detailView">
+    <div class="card">
+      <span class="back-link" id="detailBack">← 목록으로</span>
+      <div style="margin-top:14px;">
+        <div class="detail-header">
+          <div>
+            <h2 class="detail-title" id="detailTitle"></h2>
+            <div class="detail-meta" id="detailMeta"></div>
+          </div>
+          <div class="detail-actions" id="detailActions"></div>
+        </div>
+        <div class="detail-content" id="detailContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 등록/수정 뷰 ===== -->
+  <div class="view" id="formView">
+    <div class="card form-page">
+      <span class="back-link" id="formBack">← 목록으로</span>
+      <h2 id="formTitle" style="margin-top:14px;">새 메모 작성</h2>
       <input type="hidden" id="editingId">
 
       <label for="title">제목</label>
@@ -145,29 +206,7 @@
 
       <div class="row">
         <button id="submitBtn">저장</button>
-        <button class="ghost" id="cancelBtn" style="display:none">취소</button>
-      </div>
-    </div>
-
-    <!-- 왼쪽: 비로그인 안내 -->
-    <div class="card" id="loginPrompt">
-      <h2>메모 작성</h2>
-      <div class="empty">로그인하면 메모를 작성할 수 있습니다.</div>
-    </div>
-
-    <!-- 오른쪽: 목록 -->
-    <div class="card">
-      <h2>메모 목록</h2>
-      <div class="search-bar">
-        <input id="keyword" placeholder="제목으로 검색">
-        <button class="ghost" id="searchBtn">검색</button>
-        <button class="ghost" id="resetBtn">초기화</button>
-      </div>
-      <div id="list"></div>
-      <div class="pager">
-        <button class="ghost sm" id="prevBtn">이전</button>
-        <span id="pageInfo">-</span>
-        <button class="ghost sm" id="nextBtn">다음</button>
+        <button class="ghost" id="cancelBtn">취소</button>
       </div>
     </div>
   </div>
@@ -181,28 +220,60 @@
 <script>
 const API = '/api/memos';
 const AUTH_API = '/api/auth';
-
 const PAGE_SIZE = 5;
 let totalPages = 1;
 
+const $ = (id) => document.getElementById(id);
+
+// --- 뷰 전환 ---
+function showView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $(viewId).classList.add('active');
+}
+
+function goToList() {
+  showView('listView');
+  location.hash = '';
+}
+
+function goToDetail(id) {
+  showView('detailView');
+  location.hash = `detail/${id}`;
+  loadDetail(id);
+}
+
+function goToForm(editId) {
+  resetForm();
+  if (editId) {
+    loadForEdit(editId);
+    location.hash = `edit/${editId}`;
+  } else {
+    location.hash = 'create';
+  }
+  showView('formView');
+}
+
+// --- URL 파라미터 ---
 function getUrlParams() {
   const p = new URLSearchParams(location.search);
   return {
     page: Math.max(0, parseInt(p.get('page') ?? '0', 10) || 0),
-    keyword: p.get('keyword') ?? ''
+    keyword: p.get('keyword') ?? '',
+    author: p.get('author') ?? ''
   };
 }
-function pushPageState(page, keyword) {
+
+function pushPageState(page, keyword, author) {
   const p = new URLSearchParams();
   if (page > 0) p.set('page', page);
   if (keyword) p.set('keyword', keyword);
+  if (author) p.set('author', author);
   const qs = p.toString();
-  history.pushState(null, '', qs ? `?${qs}` : location.pathname);
+  const hash = location.hash;
+  history.pushState(null, '', (qs ? `?${qs}` : location.pathname) + hash);
 }
 
-let { page: currentPage, keyword: currentKeyword } = getUrlParams();
-
-const $ = (id) => document.getElementById(id);
+let { page: currentPage, keyword: currentKeyword, author: currentAuthor } = getUrlParams();
 
 // --- 인증 상태 관리 ---
 function getToken() { return localStorage.getItem('jwt_token'); }
@@ -224,8 +295,7 @@ function updateAuthUI() {
   const loggedIn = !!getToken();
   $('authForm').style.display = loggedIn ? 'none' : 'block';
   $('userInfo').style.display = loggedIn ? 'block' : 'none';
-  $('formCard').style.display = loggedIn ? 'block' : 'none';
-  $('loginPrompt').style.display = loggedIn ? 'none' : 'block';
+  $('newMemoBtn').style.display = loggedIn ? 'inline-block' : 'none';
   if (loggedIn) {
     $('currentUser').textContent = getUsername() + ' 님';
   }
@@ -244,7 +314,6 @@ async function api(method, url, body) {
   const res = await fetch(url, options);
   addLog(method, url, res.status);
 
-  // 401/403 응답 시 자동 로그아웃
   if (res.status === 401 || res.status === 403) {
     const data = await res.json().catch(() => null);
     if (res.status === 401 && getToken()) {
@@ -279,6 +348,23 @@ function formatDate(iso) {
   const d = new Date(iso);
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// --- 작성자 목록 로드 ---
+async function loadAuthors() {
+  try {
+    const data = await api('GET', `${API}?size=100`);
+    const authors = [...new Set(data.content.map(m => m.author))].sort();
+    const select = $('authorFilter');
+    select.innerHTML = '<option value="">전체 작성자</option>';
+    authors.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a;
+      opt.textContent = a;
+      if (a === currentAuthor) opt.selected = true;
+      select.appendChild(opt);
+    });
+  } catch (e) { /* ignore */ }
 }
 
 // --- 인증 기능 ---
@@ -317,17 +403,18 @@ async function doSignup() {
   }
 }
 
-// --- 메모 CRUD ---
+// --- 메모 목록 ---
 async function loadList(updateUrl = true) {
   const params = new URLSearchParams({ page: currentPage, size: PAGE_SIZE });
   if (currentKeyword) params.set('keyword', currentKeyword);
+  if (currentAuthor) params.set('author', currentAuthor);
 
-  if (updateUrl) pushPageState(currentPage, currentKeyword);
+  if (updateUrl) pushPageState(currentPage, currentKeyword, currentAuthor);
 
   try {
     const data = await api('GET', `${API}?${params}`);
     totalPages = Math.max(data.totalPages, 1);
-    render(data.content);
+    renderList(data.content);
     $('pageInfo').textContent = `${data.page + 1} / ${totalPages} 페이지 · 전체 ${data.totalElements}건`;
     $('prevBtn').disabled = data.page === 0;
     $('nextBtn').disabled = data.last;
@@ -336,34 +423,63 @@ async function loadList(updateUrl = true) {
   }
 }
 
-function render(memos) {
+function renderList(memos) {
   const list = $('list');
-  const loggedInUser = getUsername();
-
   if (!memos.length) {
     list.innerHTML = `<div class="empty">메모가 없습니다.</div>`;
     return;
   }
   list.innerHTML = memos.map(m => {
-    const isOwner = loggedInUser && m.author === loggedInUser;
-    const actions = isOwner
-      ? `<div class="memo-actions">
-           <button class="ghost sm" onclick="startEdit(${m.id})">수정</button>
-           <button class="danger sm" onclick="removeMemo(${m.id})">삭제</button>
-         </div>`
-      : '';
+    const preview = m.content.length > 60 ? m.content.substring(0, 60) + '...' : m.content;
     return `
-      <div class="memo">
+      <div class="memo" onclick="goToDetail(${m.id})">
         <div class="memo-top">
           <div>
             <div class="memo-title">${escapeHtml(m.title)}</div>
             <div class="memo-meta">#${m.id} · ${escapeHtml(m.author)} · ${formatDate(m.createdAt)}</div>
           </div>
-          ${actions}
         </div>
-        <div class="memo-content">${escapeHtml(m.content)}</div>
+        <div class="memo-preview">${escapeHtml(preview)}</div>
       </div>`;
   }).join('');
+}
+
+// --- 메모 상세 ---
+async function loadDetail(id) {
+  try {
+    const m = await api('GET', `${API}/${id}`);
+    $('detailTitle').textContent = m.title;
+    $('detailMeta').textContent = `#${m.id} · ${m.author} · 작성 ${formatDate(m.createdAt)}` +
+      (m.updatedAt && m.updatedAt !== m.createdAt ? ` · 수정 ${formatDate(m.updatedAt)}` : '');
+    $('detailContent').textContent = m.content;
+
+    const loggedInUser = getUsername();
+    const isOwner = loggedInUser && m.author === loggedInUser;
+    $('detailActions').innerHTML = isOwner
+      ? `<button class="ghost sm" onclick="goToForm(${m.id})">수정</button>
+         <button class="danger sm" onclick="removeMemo(${m.id})">삭제</button>`
+      : '';
+  } catch (e) {
+    $('detailTitle').textContent = '메모를 찾을 수 없습니다';
+    $('detailMeta').textContent = '';
+    $('detailContent').textContent = '';
+    $('detailActions').innerHTML = '';
+  }
+}
+
+// --- 메모 등록/수정 ---
+async function loadForEdit(id) {
+  try {
+    const m = await api('GET', `${API}/${id}`);
+    $('editingId').value = m.id;
+    $('title').value = m.title;
+    $('content').value = m.content;
+    $('formTitle').textContent = `메모 수정 (#${m.id})`;
+    $('submitBtn').textContent = '수정 저장';
+  } catch (e) {
+    alert('메모를 불러오지 못했습니다.');
+    goToList();
+  }
 }
 
 async function submitForm() {
@@ -378,8 +494,8 @@ async function submitForm() {
     } else {
       await api('POST', API, { title, content });
     }
-    resetForm();
     currentPage = 0;
+    goToList();
     loadList();
   } catch (e) {
     if (e.status === 403) {
@@ -393,26 +509,11 @@ async function submitForm() {
   }
 }
 
-async function startEdit(id) {
-  try {
-    const m = await api('GET', `${API}/${id}`);
-    $('editingId').value = m.id;
-    $('title').value = m.title;
-    $('content').value = m.content;
-    $('formTitle').textContent = `메모 수정 (#${m.id})`;
-    $('submitBtn').textContent = '수정 저장';
-    $('cancelBtn').style.display = 'inline-block';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } catch (e) {
-    alert('메모를 불러오지 못했습니다.');
-  }
-}
-
 async function removeMemo(id) {
   if (!confirm(`#${id} 메모를 삭제할까요?`)) return;
   try {
     await api('DELETE', `${API}/${id}`);
-    if ($('editingId').value == id) resetForm();
+    goToList();
     loadList();
   } catch (e) {
     if (e.status === 403) {
@@ -430,36 +531,80 @@ function resetForm() {
   $('formError').textContent = '';
   $('formTitle').textContent = '새 메모 작성';
   $('submitBtn').textContent = '저장';
-  $('cancelBtn').style.display = 'none';
+}
+
+// --- 해시 라우팅 ---
+function handleHash() {
+  const hash = location.hash.replace('#', '');
+  if (hash.startsWith('detail/')) {
+    const id = parseInt(hash.split('/')[1], 10);
+    if (id) { showView('detailView'); loadDetail(id); return; }
+  } else if (hash.startsWith('edit/')) {
+    const id = parseInt(hash.split('/')[1], 10);
+    if (id) { goToForm(id); return; }
+  } else if (hash === 'create') {
+    showView('formView');
+    resetForm();
+    return;
+  }
+  showView('listView');
 }
 
 // --- 이벤트 연결 ---
 $('loginBtn').onclick = doLogin;
 $('signupBtn').onclick = doSignup;
-$('logoutBtn').onclick = () => { clearAuth(); resetForm(); };
+$('logoutBtn').onclick = () => { clearAuth(); goToList(); };
 $('authPassword').onkeydown = (e) => { if (e.key === 'Enter') doLogin(); };
 
+$('newMemoBtn').onclick = () => goToForm();
 $('submitBtn').onclick = submitForm;
-$('cancelBtn').onclick = resetForm;
-$('searchBtn').onclick = () => { currentKeyword = $('keyword').value.trim(); currentPage = 0; loadList(); };
-$('resetBtn').onclick = () => { $('keyword').value = ''; currentKeyword = ''; currentPage = 0; loadList(); };
+$('cancelBtn').onclick = () => goToList();
+$('formBack').onclick = () => goToList();
+$('detailBack').onclick = () => goToList();
+
+$('searchBtn').onclick = () => {
+  currentKeyword = $('keyword').value.trim();
+  currentAuthor = $('authorFilter').value;
+  currentPage = 0;
+  loadList();
+};
+$('resetBtn').onclick = () => {
+  $('keyword').value = '';
+  $('authorFilter').value = '';
+  currentKeyword = '';
+  currentAuthor = '';
+  currentPage = 0;
+  loadList();
+};
 $('keyword').onkeydown = (e) => { if (e.key === 'Enter') $('searchBtn').click(); };
+$('authorFilter').onchange = () => {
+  currentAuthor = $('authorFilter').value;
+  currentPage = 0;
+  loadList();
+};
 $('prevBtn').onclick = () => { if (currentPage > 0) { currentPage--; loadList(); } };
 $('nextBtn').onclick = () => { if (currentPage < totalPages - 1) { currentPage++; loadList(); } };
 
-window.startEdit = startEdit;
+window.goToDetail = goToDetail;
+window.goToForm = goToForm;
 window.removeMemo = removeMemo;
+
+window.onhashchange = handleHash;
 window.onpopstate = () => {
   const s = getUrlParams();
   currentPage = s.page;
   currentKeyword = s.keyword;
+  currentAuthor = s.author;
   $('keyword').value = currentKeyword;
+  $('authorFilter').value = currentAuthor;
   loadList(false);
 };
 
 // 초기화
 $('keyword').value = currentKeyword;
 updateAuthUI();
+loadAuthors();
+handleHash();
 </script>
 </body>
 </html>

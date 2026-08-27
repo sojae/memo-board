@@ -39,12 +39,22 @@ public class MemoService {
         return MemoResponse.from(saved);
     }
 
-    public PageResponse<MemoResponse> findAll(String keyword, int page, int size) {
+    public PageResponse<MemoResponse> findAll(String keyword, String author, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<Memo> memos = (keyword == null || keyword.isBlank())
-                ? memoRepository.findAll(pageable)
-                : memoRepository.findByTitleContainingIgnoreCase(keyword.trim(), pageable);
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+        boolean hasAuthor = author != null && !author.isBlank();
+
+        Page<Memo> memos;
+        if (hasAuthor && hasKeyword) {
+            memos = memoRepository.findByUser_UsernameAndTitleContainingIgnoreCase(author.trim(), keyword.trim(), pageable);
+        } else if (hasAuthor) {
+            memos = memoRepository.findByUser_Username(author.trim(), pageable);
+        } else if (hasKeyword) {
+            memos = memoRepository.findByTitleContainingIgnoreCase(keyword.trim(), pageable);
+        } else {
+            memos = memoRepository.findAll(pageable);
+        }
 
         return PageResponse.from(memos.map(MemoResponse::from));
     }

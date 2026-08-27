@@ -87,15 +87,16 @@ public class MemoController {
      * @RequestParam : 쿼리스트링(?keyword=회의&page=0&size=10)을 받습니다.
      * required = false + defaultValue 로 값이 없을 때의 기본값을 지정합니다.
      */
-    @Operation(summary = "메모 목록 조회", description = "메모 목록을 페이징하여 조회합니다. 키워드 검색을 지원합니다.")
+    @Operation(summary = "메모 목록 조회", description = "메모 목록을 페이징하여 조회합니다. 키워드 검색과 작성자 필터를 지원합니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
     public ResponseEntity<PageResponse<MemoResponse>> findAll(
             @Parameter(description = "검색 키워드") @RequestParam(required = false) String keyword,
+            @Parameter(description = "작성자 필터") @RequestParam(required = false) String author,
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(memoService.findAll(keyword, page, size));
+        return ResponseEntity.ok(memoService.findAll(keyword, author, page, size));
     }
 
 

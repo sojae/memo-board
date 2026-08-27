@@ -36,4 +36,8 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
      * 같은 식으로 마음껏 추가해 보세요.
      */
     Page<Memo> findByTitleContainingIgnoreCase(String keyword, Pageable pageable);
+
+    Page<Memo> findByUser_Username(String username, Pageable pageable);
+
+    Page<Memo> findByUser_UsernameAndTitleContainingIgnoreCase(String username, String keyword, Pageable pageable);
 }
