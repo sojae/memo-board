@@ -1,0 +1,25 @@
+# ============================================================
+# 테스트 환경 설정 (H2 인메모리 DB 사용)
+# CI 환경에서 MySQL 없이 테스트를 실행하기 위한 프로파일
+# 활성화: --spring.profiles.active=test
+# ============================================================
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  h2:
+    console:
+      enabled: false

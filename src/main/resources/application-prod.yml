@@ -1,0 +1,30 @@
+# ============================================================
+# 운영 환경 설정 (AWS RDS MySQL)
+# 모든 민감 정보는 환경변수로 주입
+# 활성화: --spring.profiles.active=prod
+# ============================================================
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.MySQLDialect
+
+jwt:
+  secret: ${JWT_SECRET:memo-board-secret-key-for-jwt-must-be-at-least-256-bits-long-enough}
+  expiration: ${JWT_EXPIRATION:3600000}
+
+logging:
+  level:
+    root: info
+    org.hibernate.orm.jdbc.bind: warn
