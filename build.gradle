@@ -51,9 +51,11 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-    // H2 = 설치가 필요 없는 자바 내장 DB.
-    // runtimeOnly = 컴파일할 때는 필요 없고 실행할 때만 필요하다는 뜻
-    runtimeOnly 'com.h2database:h2'
+    // MySQL 드라이버
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // H2 = 테스트용 내장 DB (테스트 코드에서 사용)
+    testRuntimeOnly 'com.h2database:h2'
 
     // --- 테스트 코드에서만 쓰는 라이브러리 (devDependencies 느낌) ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
